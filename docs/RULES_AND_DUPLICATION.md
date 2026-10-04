@@ -35,6 +35,8 @@
 
 MVP复查：`moon search coap` 仅返回 moonbit-pcap@0.1.2；GitHub `coap language:MoonBit` 返回0。自身仓库尚未被搜索索引收录，说明该结果不是绝对完整覆盖。申报前须再次检索并保存日期与结果。
 
+交付前第三次复查（2026-10-04）：`moon search coap` 返回自身 `sujy123456/mooncoap@0.1.0` 和 `cghyyrrt/moonbit-pcap@0.1.2` 两个模块；GitHub仓库API `coap language:MoonBit` 返回1个，即本项目。网页搜索交叉使用 `MoonBit CoAP RFC7252 RFC6690 MoonCoAP`、`site:github.com CoAP language MoonBit`、`site:mooncakes.io coap`，未发现新增公开同等端点项目。当期官网再次实际读取，仍写10月31日报名与验收截止、方向包含通用协议库。0.1.1文档修订发布后其Mooncakes页面已可读。本次结果不能覆盖私有/未公开报名和索引未收录项目；本人未来正式提交时仍应再检索，而不能将10月4日结果当作整月不重复保证。
+
 ## 历史驳回点的回应
 
 - 通用性：提供协议内核与公开API，资源payload/handler不绑定业务；遥测、通用配置、模拟/自动化至少三类用途。

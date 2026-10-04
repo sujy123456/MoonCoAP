@@ -8,6 +8,8 @@
 
 ## 近期维护
 
+公开跟踪：[IPv6 UDP 验证](https://github.com/sujy123456/MoonCoAP/issues/1)、[单调时钟适配](https://github.com/sujy123456/MoonCoAP/issues/2)。
+
 1. 扩展真实 IPv6 UDP 互通与 Windows/Linux 计时行为测试；完成前不宣称已验证。
 2. 调研公开可维护的单调时钟适配，使 Native 默认驱动减少系统回拨影响。
 3. 收集真实调用者反馈，增加符合当前子集的回归报文，持续检查错误选项与队列回压。
