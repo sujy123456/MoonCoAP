@@ -13,3 +13,7 @@ keywords = [ "coap", "rfc7252", "network", "protocol", "iot" ]
 preferred_target = "js"
 
 description = "Bounded, deterministic unicast CoAP protocol core for MoonBit"
+
+import {
+  "moonbitlang/async@0.22.4",
+}
