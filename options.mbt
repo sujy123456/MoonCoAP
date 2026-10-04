@@ -253,3 +253,13 @@ pub fn request_queries(message : Message) -> Result[Array[String], Failure] {
   }
   Ok(result)
 }
+
+///|
+pub fn path_segments(message : Message) -> Array[Bytes] {
+  let parts = message.option_values(11)
+  if parts == [b""] {
+    []
+  } else {
+    parts
+  }
+}

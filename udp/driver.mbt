@@ -28,15 +28,16 @@ fn[T] checked(result : Result[T, @coap.Failure]) -> T raise ProtocolError {
 
 ///|
 pub struct UdpEndpoint {
-  socket : @socket.UdpServer
-  core : @coap.Endpoint
-  limits : @coap.Limits
-  random : @random.Rand
-  buffer : FixedArray[Byte]
-  origin : Int64
-  mut clock : Int64
-  mut closed : Bool
-  mut pending : Array[UdpEvent]
+  priv socket : @socket.UdpServer
+  priv core : @coap.Endpoint
+  priv limits : @coap.Limits
+  priv random : @random.Rand
+  priv buffer : FixedArray[Byte]
+  priv max_events : Int
+  priv origin : Int64
+  priv mut clock : Int64
+  priv mut closed : Bool
+  priv mut pending : Array[UdpEvent]
 }
 
 ///|
@@ -56,6 +57,7 @@ pub async fn UdpEndpoint::bind(
     limits: config.limits,
     random: @random.Rand::new(),
     buffer: FixedArray::make(65536, b'\x00'),
+    max_events: config.max_actions * 2,
     origin: @async.now(),
     clock: 0L,
     closed: false,
@@ -132,6 +134,9 @@ pub fn UdpEndpoint::drain(self : UdpEndpoint) -> Array[UdpEvent] {
 ///|
 pub async fn UdpEndpoint::flush(self : UdpEndpoint) -> Unit {
   self.ensure_open()
+  if self.pending.length() + self.core.pending_actions() > self.max_events {
+    raise ProtocolError(@coap.Capacity("drain UDP events before flushing"))
+  }
   let actions = self.core.drain()
   for action in actions {
     match action {
@@ -154,6 +159,7 @@ pub async fn UdpEndpoint::request(
   request : @coap.Request,
 ) -> Int {
   self.ensure_open()
+  self.ensure_room()
   let addr = @socket.Addr::parse(address)
   if addr.is_multicast() {
     raise ProtocolError(@coap.Unsupported("unicast address required"))
@@ -177,6 +183,7 @@ pub async fn UdpEndpoint::respond(
   response : @coap.Response,
 ) -> Unit {
   self.ensure_open()
+  self.ensure_room()
   checked(
     self.core.respond(id, response, self.now(), self.random.int(limit=1000001)),
   )
@@ -186,6 +193,7 @@ pub async fn UdpEndpoint::respond(
 ///|
 pub async fn UdpEndpoint::acknowledge(self : UdpEndpoint, id : Int) -> Unit {
   self.ensure_open()
+  self.ensure_room()
   checked(self.core.acknowledge(id, self.now()))
   self.flush()
 }
@@ -193,6 +201,7 @@ pub async fn UdpEndpoint::acknowledge(self : UdpEndpoint, id : Int) -> Unit {
 ///|
 pub async fn UdpEndpoint::cancel(self : UdpEndpoint, id : Int) -> Unit {
   self.ensure_open()
+  self.ensure_room()
   checked(self.core.cancel(id, self.now()))
   self.flush()
 }
@@ -228,6 +237,9 @@ pub async fn UdpEndpoint::step(
   self.ensure_open()
   if maximum_wait_ms < 1 || maximum_wait_ms > 60000 {
     raise ProtocolError(@coap.Invalid("step wait must be 1..60000ms"))
+  }
+  if !self.pending.is_empty() {
+    return self.drain()
   }
   self.flush()
   if !self.pending.is_empty() {
@@ -283,24 +295,60 @@ pub async fn UdpEndpoint::exchange(
   }
   let id = self.request(address, request)
   let deadline = self.now() + timeout_ms.to_int64()
+  let retained : Array[UdpEvent] = []
   while self.now() < deadline {
     let remaining = (deadline - self.now()).to_int()
     let events = self.step(if remaining < 1000 { remaining } else { 1000 })
+    let mut reply : @coap.Message? = None
+    let mut failure : @coap.Failure? = None
+    let mut unrelated = false
     for event in events {
       match event {
         Delivered(@coap.ResponseReceived(received_id, response)) =>
           if received_id == id {
-            return response
+            reply = Some(response)
+          } else {
+            unrelated = true
+            retained.push(event)
           }
-        Delivered(@coap.Failed(failed_id, failure)) =>
+        Delivered(@coap.Failed(failed_id, error)) =>
           if failed_id == id {
-            raise ProtocolError(failure)
+            failure = Some(error)
+          } else {
+            unrelated = true
+            retained.push(event)
           }
-        _ => self.pending.push(event)
+        Discarded(_, _) => retained.push(event)
+        _ => {
+          unrelated = true
+          retained.push(event)
+        }
       }
     }
-    if !self.pending.is_empty() {
-      self.cancel(id)
+    if retained.length() > self.max_events - self.core.action_capacity() {
+      self.abort_exchange(id)
+      self.pending = retained
+      raise ProtocolError(
+        @coap.Capacity("too many diagnostics during exchange"),
+      )
+    }
+    match reply {
+      Some(response) => {
+        self.pending = retained
+        return response
+      }
+      None => ()
+    }
+    match failure {
+      Some(error) => {
+        self.pending = retained
+        raise ProtocolError(error)
+      }
+      None => ()
+    }
+    if unrelated {
+      self.pending = retained
+      self.abort_exchange(id)
       raise ProtocolError(
         @coap.Conflict(
           "unrelated events received; use request/step for duplex endpoints",
@@ -308,6 +356,31 @@ pub async fn UdpEndpoint::exchange(
       )
     }
   }
-  self.cancel(id)
+  self.pending = retained
+  self.abort_exchange(id)
   raise ProtocolError(@coap.TimedOut)
+}
+
+///|
+fn UdpEndpoint::ensure_room(self : UdpEndpoint) -> Unit raise ProtocolError {
+  if self.pending.length() > self.max_events - self.core.action_capacity() {
+    raise ProtocolError(
+      @coap.Capacity("drain UDP events before submitting more work"),
+    )
+  }
+}
+
+///|
+async fn UdpEndpoint::abort_exchange(self : UdpEndpoint, id : Int) -> Unit {
+  if self.core.exchanges().any(fn(exchange) { exchange.id == id }) {
+    self.cancel(id)
+  }
+  self.pending = self.pending.filter(fn(event) {
+    match event {
+      Delivered(@coap.Cancelled(value))
+      | Delivered(@coap.Failed(value, _))
+      | Delivered(@coap.ResponseReceived(value, _)) => value != id
+      _ => true
+    }
+  })
 }

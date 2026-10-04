@@ -94,7 +94,7 @@ pub extend CacheStats with Eq::{equal, not_equal}
 pub extend CacheStats with @debug.Debug::{to_repr}
 
 ///|
-struct CacheEntry {
+priv struct CacheEntry {
   key : CacheKey
   response : Response
   expires_at : Int64
@@ -104,18 +104,18 @@ struct CacheEntry {
 
 ///|
 pub struct ResponseCache {
-  limits : Limits
-  capacity : Int
-  max_bytes : Int
-  mut entries : Array[CacheEntry]
-  mut last_now : Int64
-  mut sequence : Int64
-  mut hits : Int64
-  mut misses : Int64
-  mut stale : Int64
-  mut insertions : Int64
-  mut validations : Int64
-  mut evictions : Int64
+  priv limits : Limits
+  priv capacity : Int
+  priv max_bytes : Int
+  priv mut entries : Array[CacheEntry]
+  priv mut last_now : Int64
+  priv mut sequence : Int64
+  priv mut hits : Int64
+  priv mut misses : Int64
+  priv mut stale : Int64
+  priv mut insertions : Int64
+  priv mut validations : Int64
+  priv mut evictions : Int64
 }
 
 ///|
@@ -233,7 +233,12 @@ pub fn ResponseCache::lookup(
   for tag in entry.response.options.filter(fn(option) { option.number == 4 }) {
     options.push(tag)
   }
-  Ok(Stale(aged_response(entry.response, 0L), { ..request, options, }))
+  let validation : Request = { ..request, options, }
+  match cache_key(peer, validation, self.limits) {
+    Err(e) => return Err(e)
+    Ok(_) => ()
+  }
+  Ok(Stale(aged_response(entry.response, 0L), validation))
 }
 
 ///|
@@ -299,6 +304,14 @@ pub fn ResponseCache::store(
   let max_age = match validate_cached_response(response, self.limits) {
     Err(e) => return Err(e)
     Ok(v) => v
+  }
+  match
+    validate_cached_response(
+      aged_response(response, max_age * 1000L),
+      self.limits,
+    ) {
+    Err(e) => return Err(e)
+    Ok(_) => ()
   }
   let expiry = match deadline_after(now, max_age * 1000L) {
     Err(e) => return Err(e)
@@ -374,15 +387,28 @@ pub fn ResponseCache::validate(
     return Err(Conflict("validation ETag was not offered or does not match"))
   }
   let options = entry.response.options.copy()
+  let replaced : Array[Int] = []
   for replacement in response.options {
-    for i = options.length() - 1; i >= 0; i = i - 1 {
-      if options[i].number == replacement.number {
-        options.remove(i) |> ignore
+    if !replaced.contains(replacement.number) {
+      for i = options.length() - 1; i >= 0; i = i - 1 {
+        if options[i].number == replacement.number {
+          options.remove(i) |> ignore
+        }
       }
+      replaced.push(replacement.number)
     }
     options.push(replacement)
   }
   let merged : Response = { ..entry.response, options, }
+  match validate_cached_response(merged, self.limits) {
+    Err(e) => return Err(e)
+    Ok(_) => ()
+  }
+  match
+    validate_cached_response(aged_response(merged, age * 1000L), self.limits) {
+    Err(e) => return Err(e)
+    Ok(_) => ()
+  }
   let cost = response_cost(key, merged)
   if self.stats().bytes - entry.cost + cost > self.max_bytes {
     return Err(Capacity("validated metadata exceeds cache budget"))

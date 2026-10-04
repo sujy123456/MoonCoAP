@@ -1,5 +1,5 @@
 ///|
-struct MidLease {
+priv struct MidLease {
   peer : String
   mid : Int
   expires_at : Int64
@@ -7,12 +7,12 @@ struct MidLease {
 
 ///|
 pub struct Allocator {
-  mut next_mid : Int
-  mut token_counter : Int64
-  lifetime_ms : Int64
-  capacity : Int
-  mut last_now : Int64
-  mut leases : Array[MidLease]
+  priv mut next_mid : Int
+  priv mut token_counter : Int64
+  priv lifetime_ms : Int64
+  priv capacity : Int
+  priv mut last_now : Int64
+  priv mut leases : Array[MidLease]
 }
 
 ///|

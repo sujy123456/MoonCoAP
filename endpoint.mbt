@@ -64,7 +64,7 @@ pub extend ExchangeView with Eq::{equal, not_equal}
 pub extend ExchangeView with @debug.Debug::{to_repr}
 
 ///|
-struct ClientExchange {
+priv struct ClientExchange {
   id : Int
   peer : String
   message : Message
@@ -82,14 +82,14 @@ struct ClientExchange {
 
 ///|
 pub struct Endpoint {
-  config : Config
-  allocator : Allocator
-  mut last_now : Int64
-  mut next_id : Int
-  mut clients : Array[ClientExchange]
-  mut reply_receipts : Array[ReplyReceipt]
-  mut servers : Array[ServerExchange]
-  mut outbox : Array[Action]
+  priv config : Config
+  priv allocator : Allocator
+  priv mut last_now : Int64
+  priv mut next_id : Int
+  priv mut clients : Array[ClientExchange]
+  priv mut reply_receipts : Array[ReplyReceipt]
+  priv mut servers : Array[ServerExchange]
+  priv mut outbox : Array[Action]
 }
 
 ///|
@@ -441,4 +441,14 @@ pub fn Endpoint::cancel(
   self.outbox.push(Cancelled(id))
   self.promote_outbound(now)
   Ok(())
+}
+
+///|
+pub fn Endpoint::pending_actions(self : Endpoint) -> Int {
+  self.outbox.length()
+}
+
+///|
+pub fn Endpoint::action_capacity(self : Endpoint) -> Int {
+  self.config.max_actions
 }

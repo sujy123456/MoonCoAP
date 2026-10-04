@@ -428,8 +428,8 @@ pub fn LinkFilter::matches(self : LinkFilter, link : CoreLink) -> Bool {
 
 ///|
 pub struct Discovery {
-  limits : Limits
-  mut links : Array[CoreLink]
+  priv limits : Limits
+  priv mut links : Array[CoreLink]
 }
 
 ///|

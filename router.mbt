@@ -11,7 +11,7 @@ pub extend RouteMatch with Eq::{equal, not_equal}
 pub extend RouteMatch with @debug.Debug::{to_repr}
 
 ///|
-struct Route {
+priv struct Route {
   path : Array[Bytes]
   verbs : Array[Method]
   handler : (IncomingRequest) -> Response
@@ -19,9 +19,9 @@ struct Route {
 
 ///|
 pub struct Router {
-  limits : Limits
-  capacity : Int
-  mut routes : Array[Route]
+  priv limits : Limits
+  priv capacity : Int
+  priv mut routes : Array[Route]
 }
 
 ///|
@@ -133,7 +133,7 @@ pub fn Router::dispatch(self : Router, incoming : IncomingRequest) -> Response {
     None => return Response::error(133)
     Some(v) => v
   }
-  let parts = message.option_values(11)
+  let parts = path_segments(message)
   let mut found_path = false
   for route in self.routes {
     if route.path == parts {
@@ -153,5 +153,28 @@ pub fn Endpoint::serve(
   incoming : IncomingRequest,
   now : Int64,
 ) -> Result[Unit, Failure] {
+  match self.observe_time(now) {
+    Err(e) => return Err(e)
+    Ok(_) => ()
+  }
+  match
+    self.ensure_actions(self.config.max_exchanges + self.config.max_dedup + 4) {
+    Err(e) => return Err(e)
+    Ok(_) => ()
+  }
+  let exchange = match self.server_by_id(incoming.id) {
+    None => return Err(NotFound("unknown server request"))
+    Some(v) => v
+  }
+  if exchange.expires_at <= now {
+    return Err(TimedOut)
+  }
+  if exchange.answered || exchange.handling {
+    return Err(Conflict("request handler has already run"))
+  }
+  if exchange.incoming != incoming {
+    return Err(Conflict("incoming request does not match registered record"))
+  }
+  exchange.handling = true
   self.respond(incoming.id, router.dispatch(incoming), now, 0)
 }

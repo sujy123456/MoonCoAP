@@ -89,7 +89,7 @@ pub fn select_representation(
 }
 
 ///|
-struct StoredResource {
+priv struct StoredResource {
   path : Array[Bytes]
   representation : Representation
   writable : Bool
@@ -112,13 +112,13 @@ pub extend ResourceInfo with @debug.Debug::{to_repr}
 
 ///|
 pub struct ResourceStore {
-  limits : Limits
-  capacity : Int
-  max_bytes : Int
-  allowed_formats : Array[Int]
-  allow_create : Bool
-  mut version : Int64
-  resources : Array[StoredResource]
+  priv limits : Limits
+  priv capacity : Int
+  priv max_bytes : Int
+  priv allowed_formats : Array[Int]
+  priv allow_create : Bool
+  priv mut version : Int64
+  priv resources : Array[StoredResource]
 }
 
 ///|
@@ -292,7 +292,7 @@ pub fn ResourceStore::handle(
     None => return Response::error(133)
     Some(v) => v
   }
-  let parts = message.option_values(11)
+  let parts = path_segments(message)
   let index = self.index(parts)
   let current = match index {
     None => None

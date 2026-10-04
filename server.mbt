@@ -12,12 +12,13 @@ priv struct ServerTransmission {
 }
 
 ///|
-struct ServerExchange {
+priv struct ServerExchange {
   incoming : IncomingRequest
   original_packet : Bytes
   expires_at : Int64
   mut initial_reply : Bytes?
   mut answered : Bool
+  mut handling : Bool
   mut transmission : ServerTransmission?
 }
 
@@ -213,6 +214,7 @@ pub fn Endpoint::receive_request(
     }),
     initial_reply: None,
     answered: false,
+    handling: false,
     transmission: None,
   })
   match option_error {
@@ -499,10 +501,23 @@ fn Endpoint::automatic_reply(
 ) -> Result[Unit, Failure] {
   let exchange = self.server_by_id(id).unwrap()
   let request = exchange.incoming.message
-  if request.msg_type == NonConfirmable {
-    return Ok(())
+  let mid = if request.msg_type == NonConfirmable {
+    match self.allocator.allocate_mid(exchange.incoming.peer, self.last_now) {
+      Err(e) => return Err(e)
+      Ok(v) => v
+    }
+  } else {
+    request.mid
   }
-  let response = Message::new(Acknowledgement, { value: code, }, request.mid)
+  let response = Message::new(
+    if request.msg_type == NonConfirmable {
+      NonConfirmable
+    } else {
+      Acknowledgement
+    },
+    { value: code, },
+    mid,
+  )
   response.token = request.token
   let wire = match encode(response, self.config.limits) {
     Err(e) => return Err(e)

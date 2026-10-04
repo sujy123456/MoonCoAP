@@ -1,5 +1,5 @@
 ///|
-struct ReplyReceipt {
+priv struct ReplyReceipt {
   peer : String
   mid : Int
   token : Bytes
