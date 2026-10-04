@@ -1,0 +1,502 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "sujy123456/mooncoap"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn bytes_to_hex(Bytes) -> String
+
+pub fn cache_key(String, Request, Limits) -> Result[CacheKey, Failure]
+
+pub fn canonical_ipv6(String) -> Result[String, Failure]
+
+pub fn canonical_path(Array[Bytes]) -> String
+
+pub fn deadline_after(Int64, Int64) -> Result[Int64, Failure]
+
+pub fn decode(Bytes, Limits) -> Result[Message, Failure]
+
+pub fn decode_utf8(Bytes) -> Result[String, Failure]
+
+pub fn empty_control(MessageType, Int) -> Message
+
+pub fn encode(Message, Limits) -> Result[Bytes, Failure]
+
+pub fn encoded_size(Message, Limits) -> Result[Int, Failure]
+
+pub fn hex_to_bytes(String) -> Result[Bytes, Failure]
+
+pub fn message_uint(Message, Int, Int64) -> Result[Int64, Failure]
+
+pub fn option_is_cache_key(Int) -> Bool
+
+pub fn option_is_critical(Int) -> Bool
+
+pub fn option_is_unsafe(Int) -> Bool
+
+pub fn option_text(Int, String) -> CoapOption
+
+pub fn option_to_text(CoapOption) -> Result[String, Failure]
+
+pub fn option_to_uint(CoapOption) -> Result[Int64, Failure]
+
+pub fn option_uint(Int, Int64) -> Result[CoapOption, Failure]
+
+pub fn parse_ipv4(String) -> Result[Array[Int], Failure]
+
+pub fn parse_ipv6(String) -> Result[Array[Int], Failure]
+
+pub fn parse_links(Bytes, Limits) -> Result[Array[CoreLink], Failure]
+
+pub fn path_segments(Message) -> Array[Bytes]
+
+pub fn percent_decode(String) -> Result[Bytes, Failure]
+
+pub fn percent_encode(Bytes) -> String
+
+pub fn preconditions(Message, Representation?) -> Bool
+
+pub fn received_options(Message, Array[Int]) -> Result[Array[CoapOption], Failure]
+
+pub fn request_path(Message) -> Result[String, Failure]
+
+pub fn request_queries(Message) -> Result[Array[String], Failure]
+
+pub fn resource_path(String, Limits) -> Result[Array[Bytes], Failure]
+
+pub fn retry_interval(Config, Int) -> Result[Int64, Failure]
+
+pub fn select_representation(Message, Representation) -> Response
+
+pub fn serialize_links(Array[CoreLink], Limits) -> Result[Bytes, Failure]
+
+pub fn standard_option(Int) -> OptionSpec?
+
+pub fn validate_options(Message, Array[Int]) -> Result[Unit, Failure]
+
+// Errors
+
+// Types and methods
+pub(all) enum Action {
+  SendDatagram(String, Bytes)
+  RequestReceived(IncomingRequest)
+  ResponseReceived(Int, Message)
+  Failed(Int, Failure)
+  Cancelled(Int)
+} derive(Eq, @debug.Debug)
+pub fn Action::equal(Self, Self) -> Bool
+pub fn Action::not_equal(Self, Self) -> Bool
+pub fn Action::to_repr(Self) -> @debug.Repr
+
+pub struct Allocator {
+  // private fields
+}
+pub fn Allocator::active_leases(Self) -> Int
+pub fn Allocator::allocate_mid(Self, String, Int64) -> Result[Int, Failure]
+pub fn Allocator::allocate_token(Self) -> Result[Bytes, Failure]
+pub fn Allocator::collect(Self, Int64) -> Result[Int, Failure]
+pub fn Allocator::is_reserved(Self, String, Int) -> Bool
+pub fn Allocator::new(Config) -> Result[Self, Failure]
+pub fn Allocator::next_expiry(Self) -> Int64?
+pub fn Allocator::remaining_capacity(Self) -> Int
+pub fn Allocator::reserve(Self, String, Int, Int64) -> Result[Unit, Failure]
+
+pub(all) struct CacheKey {
+  peer : String
+  options : Array[CoapOption]
+} derive(Eq, @debug.Debug)
+pub fn CacheKey::equal(Self, Self) -> Bool
+pub fn CacheKey::not_equal(Self, Self) -> Bool
+pub fn CacheKey::to_repr(Self) -> @debug.Repr
+
+pub(all) enum CacheLookup {
+  Miss
+  Fresh(Response)
+  Stale(Response, Request)
+} derive(Eq, @debug.Debug)
+pub fn CacheLookup::equal(Self, Self) -> Bool
+pub fn CacheLookup::not_equal(Self, Self) -> Bool
+pub fn CacheLookup::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CacheStats {
+  hits : Int64
+  misses : Int64
+  stale : Int64
+  insertions : Int64
+  validations : Int64
+  evictions : Int64
+  entries : Int
+  bytes : Int
+} derive(Eq, @debug.Debug)
+pub fn CacheStats::equal(Self, Self) -> Bool
+pub fn CacheStats::not_equal(Self, Self) -> Bool
+pub fn CacheStats::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CoapOption {
+  number : Int
+  value : Bytes
+} derive(Eq, @debug.Debug)
+pub fn CoapOption::equal(Self, Self) -> Bool
+pub fn CoapOption::not_equal(Self, Self) -> Bool
+pub fn CoapOption::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CoapUri {
+  host : String
+  port : Int
+  path : Array[Bytes]
+  query : Array[Bytes]
+} derive(Eq, @debug.Debug)
+pub fn CoapUri::equal(Self, Self) -> Bool
+pub fn CoapUri::not_equal(Self, Self) -> Bool
+pub fn CoapUri::parse(String, Limits) -> Result[Self, Failure]
+pub fn CoapUri::to_options(Self) -> Array[CoapOption]
+pub fn CoapUri::to_repr(Self) -> @debug.Repr
+pub fn CoapUri::to_string(Self) -> String
+
+pub(all) struct Code {
+  value : Int
+} derive(Eq, @debug.Debug)
+pub fn Code::class(Self) -> Int
+pub fn Code::description(Self) -> String
+pub fn Code::detail(Self) -> Int
+pub fn Code::equal(Self, Self) -> Bool
+pub fn Code::is_request(Self) -> Bool
+pub fn Code::is_response(Self) -> Bool
+pub fn Code::is_success(Self) -> Bool
+pub fn Code::not_equal(Self, Self) -> Bool
+pub fn Code::request(Method) -> Self
+pub fn Code::response(Int, Int) -> Result[Self, Failure]
+pub fn Code::to_repr(Self) -> @debug.Repr
+pub fn Code::verb(Self) -> Method?
+
+pub(all) struct Config {
+  limits : Limits
+  ack_timeout_ms : Int64
+  ack_random_factor_permille : Int
+  max_retransmit : Int
+  exchange_lifetime_ms : Int64
+  non_lifetime_ms : Int64
+  response_timeout_ms : Int64
+  max_peers : Int
+  max_exchanges : Int
+  max_dedup : Int
+  max_mid_leases : Int
+  max_queue : Int
+  max_actions : Int
+  nstart : Int
+  initial_mid : Int
+  token_seed : Int64
+} derive(Eq, @debug.Debug)
+pub fn Config::default() -> Self
+pub fn Config::equal(Self, Self) -> Bool
+pub fn Config::max_transmit_span(Self) -> Int64
+pub fn Config::not_equal(Self, Self) -> Bool
+pub fn Config::to_repr(Self) -> @debug.Repr
+pub fn Config::validate(Self) -> Result[Unit, Failure]
+
+pub(all) struct CoreLink {
+  target : String
+  attributes : Array[LinkAttribute]
+} derive(Eq, @debug.Debug)
+pub fn CoreLink::attribute(Self, String) -> String?
+pub fn CoreLink::equal(Self, Self) -> Bool
+pub fn CoreLink::not_equal(Self, Self) -> Bool
+pub fn CoreLink::to_repr(Self) -> @debug.Repr
+pub fn CoreLink::validate(Self, Limits) -> Result[Unit, Failure]
+
+pub struct Discovery {
+  // private fields
+}
+pub fn Discovery::add(Self, CoreLink) -> Result[Unit, Failure]
+pub fn Discovery::handle(Self, Message) -> Response
+pub fn Discovery::links(Self) -> Array[CoreLink]
+pub fn Discovery::new(Limits) -> Result[Self, Failure]
+pub fn Discovery::remove(Self, String) -> Bool
+
+pub struct Endpoint {
+  // private fields
+}
+pub fn Endpoint::acknowledge(Self, Int, Int64) -> Result[Unit, Failure]
+pub fn Endpoint::action_capacity(Self) -> Int
+pub fn Endpoint::active_for_peer(Self, String) -> Int
+pub fn Endpoint::active_peers(Self) -> Array[String]
+pub fn Endpoint::cancel(Self, Int, Int64) -> Result[Unit, Failure]
+pub fn Endpoint::drain(Self) -> Array[Action]
+pub fn Endpoint::exchange_count(Self) -> Int
+pub fn Endpoint::exchanges(Self) -> Array[ExchangeView]
+pub fn Endpoint::new(Config) -> Result[Self, Failure]
+pub fn Endpoint::next_deadline(Self) -> Int64?
+pub fn Endpoint::pending_actions(Self) -> Int
+pub fn Endpoint::poll(Self, Int64) -> Result[Unit, Failure]
+pub fn Endpoint::queued_count(Self) -> Int
+pub fn Endpoint::receive(Self, String, Bytes, Int64) -> Result[Unit, Failure]
+pub fn Endpoint::receive_request(Self, String, Bytes, Int64) -> Result[Unit, Failure]
+pub fn Endpoint::receive_response(Self, String, Bytes, Int64) -> Result[Unit, Failure]
+pub fn Endpoint::request(Self, String, Request, Int64, Int) -> Result[Int, Failure]
+pub fn Endpoint::respond(Self, Int, Response, Int64, Int) -> Result[Unit, Failure]
+pub fn Endpoint::response_receipt_count(Self) -> Int
+pub fn Endpoint::serve(Self, Router, IncomingRequest, Int64) -> Result[Unit, Failure]
+pub fn Endpoint::server_records(Self) -> Array[ServerView]
+
+pub(all) enum ExchangePhase {
+  Queued
+  Sending
+  WaitingResponse
+  Finished
+} derive(Eq, @debug.Debug)
+pub fn ExchangePhase::equal(Self, Self) -> Bool
+pub fn ExchangePhase::not_equal(Self, Self) -> Bool
+pub fn ExchangePhase::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ExchangeView {
+  id : Int
+  peer : String
+  mid : Int
+  token : Bytes
+  phase : ExchangePhase
+  created_at : Int64
+  last_sent_at : Int64
+  deadline : Int64
+  transmit_deadline : Int64
+  next_retry : Int64?
+  interval : Int64
+  retransmissions : Int
+} derive(Eq, @debug.Debug)
+pub fn ExchangeView::equal(Self, Self) -> Bool
+pub fn ExchangeView::not_equal(Self, Self) -> Bool
+pub fn ExchangeView::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Failure {
+  Syntax(Int, String)
+  Invalid(String)
+  Capacity(String)
+  Unsupported(String)
+  Clock(String)
+  NotFound(String)
+  Conflict(String)
+  Transport(String)
+  TimedOut
+  ResetByPeer
+} derive(Eq, @debug.Debug)
+pub fn Failure::equal(Self, Self) -> Bool
+pub fn Failure::not_equal(Self, Self) -> Bool
+pub fn Failure::to_repr(Self) -> @debug.Repr
+
+pub(all) struct IncomingRequest {
+  id : Int
+  peer : String
+  message : Message
+  received_at : Int64
+} derive(Eq, @debug.Debug)
+pub fn IncomingRequest::equal(Self, Self) -> Bool
+pub fn IncomingRequest::not_equal(Self, Self) -> Bool
+pub fn IncomingRequest::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Limits {
+  max_datagram : Int
+  max_options : Int
+  max_option_bytes : Int
+  max_payload : Int
+  max_uri_bytes : Int
+  max_links : Int
+  max_link_attributes : Int
+} derive(Eq, @debug.Debug)
+pub fn Limits::default() -> Self
+pub fn Limits::equal(Self, Self) -> Bool
+pub fn Limits::not_equal(Self, Self) -> Bool
+pub fn Limits::to_repr(Self) -> @debug.Repr
+pub fn Limits::validate(Self) -> Result[Unit, Failure]
+
+pub(all) struct LinkAttribute {
+  name : String
+  value : String?
+} derive(Eq, @debug.Debug)
+pub fn LinkAttribute::equal(Self, Self) -> Bool
+pub fn LinkAttribute::not_equal(Self, Self) -> Bool
+pub fn LinkAttribute::to_repr(Self) -> @debug.Repr
+
+pub(all) struct LinkFilter {
+  name : String
+  value : String
+  prefix : Bool
+} derive(Eq, @debug.Debug)
+pub fn LinkFilter::equal(Self, Self) -> Bool
+pub fn LinkFilter::matches(Self, CoreLink) -> Bool
+pub fn LinkFilter::not_equal(Self, Self) -> Bool
+pub fn LinkFilter::parse(String) -> Result[Self, Failure]
+pub fn LinkFilter::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Message {
+  mut msg_type : MessageType
+  mut code : Code
+  mut mid : Int
+  mut token : Bytes
+  mut options : Array[CoapOption]
+  mut payload : Bytes
+} derive(Eq, @debug.Debug)
+pub fn Message::copy(Self) -> Self
+pub fn Message::equal(Self, Self) -> Bool
+pub fn Message::first_option(Self, Int) -> Bytes?
+pub fn Message::new(MessageType, Code, Int) -> Self
+pub fn Message::not_equal(Self, Self) -> Bool
+pub fn Message::option_values(Self, Int) -> Array[Bytes]
+pub fn Message::remove_option(Self, Int) -> Unit
+pub fn Message::replace_option(Self, Int, Bytes) -> Unit
+pub fn Message::to_repr(Self) -> @debug.Repr
+
+pub(all) enum MessageType {
+  Confirmable
+  NonConfirmable
+  Acknowledgement
+  Reset
+} derive(Eq, @debug.Debug)
+pub fn MessageType::equal(Self, Self) -> Bool
+pub fn MessageType::not_equal(Self, Self) -> Bool
+pub fn MessageType::to_repr(Self) -> @debug.Repr
+pub fn MessageType::wire(Self) -> Int
+
+pub(all) enum Method {
+  Get
+  Post
+  Put
+  Delete
+} derive(Eq, @debug.Debug)
+pub fn Method::equal(Self, Self) -> Bool
+pub fn Method::name(Self) -> String
+pub fn Method::not_equal(Self, Self) -> Bool
+pub fn Method::to_repr(Self) -> @debug.Repr
+pub fn Method::wire(Self) -> Int
+
+pub(all) enum OptionKind {
+  Opaque
+  Unsigned
+  Text
+  Flag
+} derive(Eq, @debug.Debug)
+pub fn OptionKind::equal(Self, Self) -> Bool
+pub fn OptionKind::not_equal(Self, Self) -> Bool
+pub fn OptionKind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct OptionSpec {
+  number : Int
+  name : String
+  kind : OptionKind
+  min_length : Int
+  max_length : Int
+  repeatable : Bool
+  request_only : Bool
+  response_only : Bool
+} derive(Eq, @debug.Debug)
+pub fn OptionSpec::equal(Self, Self) -> Bool
+pub fn OptionSpec::not_equal(Self, Self) -> Bool
+pub fn OptionSpec::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Representation {
+  payload : Bytes
+  content_format : Int
+  etag : Bytes
+  max_age : Int64
+} derive(Eq, @debug.Debug)
+pub fn Representation::equal(Self, Self) -> Bool
+pub fn Representation::not_equal(Self, Self) -> Bool
+pub fn Representation::response(Self, Bool) -> Response
+pub fn Representation::to_repr(Self) -> @debug.Repr
+pub fn Representation::validate(Self, Limits) -> Result[Unit, Failure]
+
+pub(all) struct Request {
+  verb : Method
+  options : Array[CoapOption]
+  payload : Bytes
+  confirmable : Bool
+} derive(Eq, @debug.Debug)
+pub fn Request::equal(Self, Self) -> Bool
+pub fn Request::from_uri(Method, String, Limits) -> Result[(CoapUri, Self), Failure]
+pub fn Request::new(Method) -> Self
+pub fn Request::not_equal(Self, Self) -> Bool
+pub fn Request::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ResourceInfo {
+  path : String
+  content_format : Int
+  size : Int
+  etag : Bytes
+  writable : Bool
+} derive(Eq, @debug.Debug)
+pub fn ResourceInfo::equal(Self, Self) -> Bool
+pub fn ResourceInfo::not_equal(Self, Self) -> Bool
+pub fn ResourceInfo::to_repr(Self) -> @debug.Repr
+
+pub struct ResourceStore {
+  // private fields
+}
+pub fn ResourceStore::byte_size(Self) -> Int
+pub fn ResourceStore::discovery(Self, Limits) -> Result[Discovery, Failure]
+pub fn ResourceStore::get(Self, String) -> Result[Representation, Failure]
+pub fn ResourceStore::handle(Self, Message) -> Response
+pub fn ResourceStore::inventory(Self) -> Array[ResourceInfo]
+pub fn ResourceStore::new(Int, Int, Array[Int], Bool, Limits) -> Result[Self, Failure]
+pub fn ResourceStore::put(Self, String, Bytes, Int, Int64, Bool) -> Result[Representation, Failure]
+pub fn ResourceStore::remove(Self, String) -> Result[Bool, Failure]
+
+pub(all) struct Response {
+  code : Code
+  options : Array[CoapOption]
+  payload : Bytes
+} derive(Eq, @debug.Debug)
+pub fn Response::content(Bytes) -> Self
+pub fn Response::equal(Self, Self) -> Bool
+pub fn Response::error(Int) -> Self
+pub fn Response::not_equal(Self, Self) -> Bool
+pub fn Response::to_repr(Self) -> @debug.Repr
+
+pub struct ResponseCache {
+  // private fields
+}
+pub fn ResponseCache::clear(Self) -> Int
+pub fn ResponseCache::invalidate(Self, String, String) -> Result[Int, Failure]
+pub fn ResponseCache::lookup(Self, String, Request, Int64) -> Result[CacheLookup, Failure]
+pub fn ResponseCache::new(Int, Int, Limits) -> Result[Self, Failure]
+pub fn ResponseCache::stats(Self) -> CacheStats
+pub fn ResponseCache::store(Self, String, Request, Response, Int64) -> Result[Unit, Failure]
+pub fn ResponseCache::validate(Self, String, Request, Response, Int64) -> Result[Unit, Failure]
+
+pub(all) struct RouteMatch {
+  path : Array[Bytes]
+  verb : Method
+} derive(Eq, @debug.Debug)
+pub fn RouteMatch::equal(Self, Self) -> Bool
+pub fn RouteMatch::not_equal(Self, Self) -> Bool
+pub fn RouteMatch::to_repr(Self) -> @debug.Repr
+
+pub struct Router {
+  // private fields
+}
+pub fn Router::add(Self, String, Array[Method], (IncomingRequest) -> Response) -> Result[Unit, Failure]
+pub fn Router::dispatch(Self, IncomingRequest) -> Response
+pub fn Router::new(Int, Limits) -> Result[Self, Failure]
+pub fn Router::remove(Self, String) -> Result[Int, Failure]
+pub fn Router::routes(Self) -> Array[RouteMatch]
+
+pub(all) struct ServerView {
+  id : Int
+  peer : String
+  request_mid : Int
+  token : Bytes
+  expires_at : Int64
+  acknowledged : Bool
+  answered : Bool
+  response_mid : Int?
+  response_phase : ExchangePhase?
+  response_deadline : Int64?
+  last_sent_at : Int64?
+  retransmissions : Int
+} derive(Eq, @debug.Debug)
+pub fn ServerView::equal(Self, Self) -> Bool
+pub fn ServerView::not_equal(Self, Self) -> Bool
+pub fn ServerView::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

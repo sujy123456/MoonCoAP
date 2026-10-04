@@ -94,8 +94,11 @@ def main():
     subprocess.run([args.moon, 'build', '--target', 'native', '--deny-warn'], cwd=ROOT, check=True)
     suffix = '.exe' if os.name == 'nt' else ''
     build = ROOT / '_build/native/debug/build/cmd'
-    server_binary = build / 'interop_server' / ('interop_server' + suffix)
-    client_binary = build / 'interop_client' / ('interop_client' + suffix)
+    def executable(name):
+        candidates = [build / name / (name + suffix), build / name / (name + '.exe')]
+        return next((path for path in candidates if path.is_file()), candidates[0])
+    server_binary = executable('interop_server')
+    client_binary = executable('interop_client')
     if not server_binary.is_file() or not client_binary.is_file():
         raise SystemExit(f'Expected native binaries missing under {build}')
     with subprocess.Popen([str(server_binary)], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as server:

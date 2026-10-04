@@ -16,6 +16,7 @@ def main():
         print('RUN', ' '.join(command), flush=True)
         subprocess.run(command, cwd=ROOT, check=True)
     moon('version', '--all')
+    moon('update')
     moon('fmt', '--check')
     for target in ['js', 'native']:
         for task in ['check', 'test', 'build']:
