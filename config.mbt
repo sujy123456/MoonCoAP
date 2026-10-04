@@ -12,6 +12,7 @@ pub(all) struct Config {
   max_dedup : Int
   max_mid_leases : Int
   max_queue : Int
+  max_actions : Int
   nstart : Int
   initial_mid : Int
   token_seed : Int64
@@ -38,6 +39,7 @@ pub fn Config::default() -> Config {
     max_dedup: 256,
     max_mid_leases: 4096,
     max_queue: 128,
+    max_actions: 1024,
     nstart: 1,
     initial_mid: 0,
     token_seed: 1L,
@@ -87,6 +89,10 @@ pub fn Config::validate(self : Config) -> Result[Unit, Failure] {
   }
   if self.max_queue < 0 || self.max_queue > self.max_exchanges {
     return Err(Invalid("queue count must not exceed exchange count"))
+  }
+  if self.max_actions < 2 * self.max_exchanges + self.max_dedup + 4 ||
+    self.max_actions > 131072 {
+    return Err(Invalid("action capacity must cover a complete polling batch"))
   }
   if self.nstart < 1 || self.nstart > self.max_exchanges {
     return Err(Invalid("NSTART outside supported range"))

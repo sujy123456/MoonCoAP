@@ -8,6 +8,8 @@ pub(all) enum Failure {
   NotFound(String)
   Conflict(String)
   Transport(String)
+  TimedOut
+  ResetByPeer
 } derive(Eq, Debug)
 
 ///|
