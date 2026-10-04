@@ -70,8 +70,8 @@ pub fn Code::request(verb : Method) -> Code {
 
 ///|
 pub fn Code::response(class : Int, detail : Int) -> Result[Code, Failure] {
-  if class < 2 || class > 5 || detail < 0 || detail > 31 {
-    return Err(Invalid("response class must be 2..5 and detail 0..31"))
+  if (class != 2 && class != 4 && class != 5) || detail < 0 || detail > 31 {
+    return Err(Invalid("response class must be 2, 4 or 5 and detail 0..31"))
   }
   Ok({ value: class * 32 + detail, })
 }
@@ -93,7 +93,7 @@ pub fn Code::is_request(self : Code) -> Bool {
 
 ///|
 pub fn Code::is_response(self : Code) -> Bool {
-  self.class() >= 2 && self.class() <= 5
+  self.class() == 2 || self.class() == 4 || self.class() == 5
 }
 
 ///|

@@ -74,6 +74,7 @@ struct ClientExchange {
   mut last_sent_at : Int64
   mut deadline : Int64
   mut transmit_deadline : Int64
+  mut retransmit_stop : Int64
   mut next_retry : Int64?
   mut interval : Int64
   mut retransmissions : Int
@@ -232,6 +233,7 @@ fn Endpoint::start_client(
   exchange.deadline = now + self.config.response_timeout_ms
   exchange.transmit_deadline = now +
     exchange.interval * ((1L << (self.config.max_retransmit + 1)) - 1L)
+  exchange.retransmit_stop = now + self.config.max_transmit_span()
   exchange.next_retry = if exchange.message.msg_type == Confirmable {
     Some(now + exchange.interval)
   } else {
@@ -242,7 +244,9 @@ fn Endpoint::start_client(
 }
 
 ///|
-fn Endpoint::promote_clients(self : Endpoint, now : Int64) -> Unit {
+fn Endpoint::promote_outbound(self : Endpoint, now : Int64) -> Unit {
+  self.expire_clients(now)
+  self.expire_server_transmissions(now)
   for _round = 0
       _round < self.config.max_exchanges + self.config.max_dedup
       _round = _round + 1 {
@@ -346,7 +350,7 @@ pub fn Endpoint::request(
   }
   self.expire_clients(now)
   self.expire_server_records(now)
-  self.promote_clients(now)
+  self.promote_outbound(now)
   if self.clients.length() >= self.config.max_exchanges {
     return Err(Capacity("client exchanges are full"))
   }
@@ -399,6 +403,7 @@ pub fn Endpoint::request(
     last_sent_at: now,
     deadline: now + self.config.response_timeout_ms,
     transmit_deadline: now + self.config.exchange_lifetime_ms,
+    retransmit_stop: now,
     next_retry: None,
     interval,
     retransmissions: 0,
@@ -434,6 +439,6 @@ pub fn Endpoint::cancel(
   }
   self.clients = self.clients.filter(fn(exchange) { exchange.id != id })
   self.outbox.push(Cancelled(id))
-  self.promote_clients(now)
+  self.promote_outbound(now)
   Ok(())
 }

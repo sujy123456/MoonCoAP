@@ -140,3 +140,11 @@ pub fn deadline_after(now : Int64, delay : Int64) -> Result[Int64, Failure] {
   }
   Ok(now + delay)
 }
+
+///|
+pub fn Config::max_transmit_span(self : Config) -> Int64 {
+  self.ack_timeout_ms *
+  ((1L << self.max_retransmit) - 1L) *
+  self.ack_random_factor_permille.to_int64() /
+  1000L
+}

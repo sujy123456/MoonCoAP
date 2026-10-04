@@ -202,6 +202,25 @@ pub fn CoapUri::parse(
       Err(error) => return Err(error)
     }
   }
+  let normalized : Array[Bytes] = []
+  for i = 0; i < path.length(); i = i + 1 {
+    let part = path[i]
+    if part == b".." {
+      if !normalized.is_empty() {
+        normalized.remove(normalized.length() - 1) |> ignore
+      }
+      if i == path.length() - 1 && !normalized.is_empty() {
+        normalized.push(b"")
+      }
+    } else if part == b"." {
+      if i == path.length() - 1 && !normalized.is_empty() {
+        normalized.push(b"")
+      }
+    } else {
+      normalized.push(part)
+    }
+  }
+  let path = normalized
   let query = match query_text {
     None => []
     Some(query) =>

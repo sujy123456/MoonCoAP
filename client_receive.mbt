@@ -47,7 +47,7 @@ fn Endpoint::finish_response(
 ) -> Unit {
   let exchange = self.clients.remove(index)
   self.outbox.push(ResponseReceived(exchange.id, message.copy()))
-  self.promote_clients(now)
+  self.promote_outbound(now)
 }
 
 ///|
@@ -59,7 +59,7 @@ fn Endpoint::reject_response(
 ) -> Unit {
   let exchange = self.clients.remove(index)
   self.outbox.push(Failed(exchange.id, error))
-  self.promote_clients(now)
+  self.promote_outbound(now)
 }
 
 ///|
@@ -103,12 +103,12 @@ pub fn Endpoint::receive_response(
     Err(error) => return Err(error)
     Ok(_) => ()
   }
-  let message = match decode(packet, self.config.limits) {
+  let message = match self.decode_incoming(peer, packet) {
     Err(error) => return Err(error)
     Ok(value) => value
   }
   self.expire_clients(now)
-  self.promote_clients(now)
+  self.promote_outbound(now)
   self.reply_receipts = self.reply_receipts.filter(fn(receipt) {
     receipt.expires_at > now
   })
@@ -128,15 +128,18 @@ pub fn Endpoint::receive_response(
     if message.code.value == 0 {
       exchange.phase = WaitingResponse
       exchange.next_retry = None
-      self.promote_clients(now)
+      self.promote_outbound(now)
       return Ok(())
     }
     if message.token != exchange.message.token {
       return Ok(())
     }
-    match validate_options(message, []) {
+    match received_options(message, []) {
       Err(error) => self.reject_response(index, error, now)
-      Ok(_) => self.finish_response(index, message, now)
+      Ok(options) => {
+        message.options = options
+        self.finish_response(index, message, now)
+      }
     }
     return Ok(())
   }
@@ -169,7 +172,7 @@ pub fn Endpoint::receive_response(
     }
     Some(value) => value
   }
-  match validate_options(message, []) {
+  match received_options(message, []) {
     Err(error) => {
       if message.msg_type == Confirmable {
         self.send_control(peer, Reset, message.mid)
@@ -177,7 +180,7 @@ pub fn Endpoint::receive_response(
       }
       return Ok(())
     }
-    Ok(_) => ()
+    Ok(options) => message.options = options
   }
   if message.msg_type == Confirmable {
     if self.reply_receipts.length() >= self.config.max_dedup {

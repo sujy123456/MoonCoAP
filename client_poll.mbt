@@ -38,6 +38,10 @@ pub fn Endpoint::poll(self : Endpoint, now : Int64) -> Result[Unit, Failure] {
     if exchange.phase != Sending || exchange.message.msg_type != Confirmable {
       continue
     }
+    if now > exchange.retransmit_stop {
+      exchange.next_retry = None
+      continue
+    }
     match exchange.next_retry {
       None => ()
       Some(deadline) => {
@@ -63,7 +67,7 @@ pub fn Endpoint::poll(self : Endpoint, now : Int64) -> Result[Unit, Failure] {
   })
   self.poll_server_responses(now)
   self.expire_server_records(now)
-  self.promote_clients(now)
+  self.promote_outbound(now)
   Ok(())
 }
 

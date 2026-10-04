@@ -75,7 +75,7 @@ pub fn standard_option(number : Int) -> OptionSpec? {
     35 => Some(option_spec(35, "Proxy-Uri", Text, 1, 1034, false, true, false))
     39 =>
       Some(option_spec(39, "Proxy-Scheme", Text, 1, 255, false, true, false))
-    60 => Some(option_spec(60, "Size1", Unsigned, 0, 4, false, true, false))
+    60 => Some(option_spec(60, "Size1", Unsigned, 0, 4, false, false, false))
     _ => None
   }
 }
@@ -155,7 +155,11 @@ pub fn validate_options(
           option.value.length() > spec.max_length {
           return Err(Invalid("invalid length for " + spec.name))
         }
-        if !spec.repeatable && seen.contains(option.number) {
+        if (
+            !spec.repeatable ||
+            (option.number == 4 && message.code.is_response())
+          ) &&
+          seen.contains(option.number) {
           return Err(Invalid("duplicate " + spec.name))
         }
         if spec.request_only && !message.code.is_request() {
@@ -163,6 +167,10 @@ pub fn validate_options(
         }
         if spec.response_only && !message.code.is_response() {
           return Err(Invalid(spec.name + " is response-only"))
+        }
+        if (option.number == 11 || option.number == 8) &&
+          (option.value == b"." || option.value == b"..") {
+          return Err(Invalid("dot segments are not permitted in path options"))
         }
         match spec.kind {
           Text =>

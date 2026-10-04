@@ -5,6 +5,7 @@ priv struct ServerTransmission {
   mut phase : ExchangePhase
   mut last_sent_at : Int64
   mut deadline : Int64
+  mut retransmit_stop : Int64
   mut next_retry : Int64?
   mut interval : Int64
   mut retransmissions : Int
@@ -142,7 +143,7 @@ pub fn Endpoint::receive_request(
     Err(error) => return Err(error)
     Ok(_) => ()
   }
-  let message = match decode(packet, self.config.limits) {
+  let message = match self.decode_incoming(peer, packet) {
     Err(error) => return Err(error)
     Ok(value) => value
   }
@@ -173,8 +174,11 @@ pub fn Endpoint::receive_request(
       return Ok(())
     }
   }
-  let option_error = match validate_options(message, []) {
-    Ok(_) => None
+  let option_error = match received_options(message, []) {
+    Ok(options) => {
+      message.options = options
+      None
+    }
     Err(error) => Some(error)
   }
   if option_error is Some(_) && message.msg_type == NonConfirmable {
@@ -219,12 +223,12 @@ pub fn Endpoint::receive_request(
       } else {
         130
       }
-      return self.respond(id, Response::error(code), now, 0)
+      return self.automatic_reply(id, code)
     }
     None => ()
   }
   if message.code.verb() is None {
-    return self.respond(id, Response::error(133), now, 0)
+    return self.automatic_reply(id, 133)
   }
   self.outbox.push(
     RequestReceived({
@@ -256,6 +260,7 @@ fn Endpoint::start_server_response(
     Err(error) => return Err(error)
     Ok(value) => value
   }
+  response.retransmit_stop = now + self.config.max_transmit_span()
   response.phase = Sending
   response.last_sent_at = now
   let maximum_wait = response.interval *
@@ -348,12 +353,13 @@ pub fn Endpoint::respond(
     phase: Queued,
     last_sent_at: now,
     deadline: now + self.config.exchange_lifetime_ms,
+    retransmit_stop: now,
     next_retry: None,
     interval,
     retransmissions: 0,
   })
   exchange.answered = true
-  self.promote_clients(now)
+  self.promote_outbound(now)
   Ok(())
 }
 
@@ -373,6 +379,10 @@ fn Endpoint::poll_server_responses(self : Endpoint, now : Int64) -> Unit {
           continue
         }
         if response.phase == Queued {
+          continue
+        }
+        if now > response.retransmit_stop {
+          response.next_retry = None
           continue
         }
         match response.next_retry {
@@ -420,7 +430,7 @@ fn Endpoint::receive_server_control(
           if message.msg_type == Reset {
             self.outbox.push(Failed(exchange.incoming.id, ResetByPeer))
           }
-          self.promote_clients(now)
+          self.promote_outbound(now)
           return true
         }
       None => ()
@@ -449,7 +459,7 @@ pub fn Endpoint::receive(
     Err(error) => return Err(error)
     Ok(_) => ()
   }
-  let message = match decode(packet, self.config.limits) {
+  let message = match self.decode_incoming(peer, packet) {
     Err(error) => return Err(error)
     Ok(value) => value
   }
@@ -457,11 +467,49 @@ pub fn Endpoint::receive(
     return self.receive_request(peer, packet, now)
   }
   if message.msg_type == Acknowledgement || message.msg_type == Reset {
-    self.poll_server_responses(now)
+    self.expire_server_transmissions(now)
     self.expire_server_records(now)
     if self.receive_server_control(peer, message, now) {
       return Ok(())
     }
   }
   self.receive_response(peer, packet, now)
+}
+
+///|
+fn Endpoint::expire_server_transmissions(self : Endpoint, now : Int64) -> Unit {
+  for exchange in self.servers {
+    match exchange.transmission {
+      Some(response) =>
+        if response.phase != Finished && now >= response.deadline {
+          response.phase = Finished
+          response.next_retry = None
+          self.outbox.push(Failed(exchange.incoming.id, TimedOut))
+        }
+      None => ()
+    }
+  }
+}
+
+///|
+fn Endpoint::automatic_reply(
+  self : Endpoint,
+  id : Int,
+  code : Int,
+) -> Result[Unit, Failure] {
+  let exchange = self.server_by_id(id).unwrap()
+  let request = exchange.incoming.message
+  if request.msg_type == NonConfirmable {
+    return Ok(())
+  }
+  let response = Message::new(Acknowledgement, { value: code, }, request.mid)
+  response.token = request.token
+  let wire = match encode(response, self.config.limits) {
+    Err(e) => return Err(e)
+    Ok(v) => v
+  }
+  exchange.initial_reply = Some(wire)
+  exchange.answered = true
+  self.outbox.push(SendDatagram(exchange.incoming.peer, wire))
+  Ok(())
 }
