@@ -51,6 +51,7 @@ pub(all) struct ExchangeView {
   created_at : Int64
   last_sent_at : Int64
   deadline : Int64
+  transmit_deadline : Int64
   next_retry : Int64?
   interval : Int64
   retransmissions : Int
@@ -72,9 +73,10 @@ struct ClientExchange {
   created_at : Int64
   mut last_sent_at : Int64
   mut deadline : Int64
+  mut transmit_deadline : Int64
   mut next_retry : Int64?
-  interval : Int64
-  retransmissions : Int
+  mut interval : Int64
+  mut retransmissions : Int
 }
 
 ///|
@@ -183,6 +185,7 @@ pub fn Endpoint::exchanges(self : Endpoint) -> Array[ExchangeView] {
       created_at: exchange.created_at,
       last_sent_at: exchange.last_sent_at,
       deadline: exchange.deadline,
+      transmit_deadline: exchange.transmit_deadline,
       next_retry: exchange.next_retry,
       interval: exchange.interval,
       retransmissions: exchange.retransmissions,
@@ -209,6 +212,8 @@ fn Endpoint::start_client(
   exchange.phase = Sending
   exchange.last_sent_at = now
   exchange.deadline = now + self.config.response_timeout_ms
+  exchange.transmit_deadline = now +
+    exchange.interval * ((1L << (self.config.max_retransmit + 1)) - 1L)
   exchange.next_retry = if exchange.message.msg_type == Confirmable {
     Some(now + exchange.interval)
   } else {
@@ -251,10 +256,12 @@ pub fn Endpoint::request(
     Err(error) => return Err(error)
     Ok(_) => ()
   }
-  match self.ensure_actions(1) {
+  match self.ensure_actions(self.config.max_exchanges + 1) {
     Err(error) => return Err(error)
     Ok(_) => ()
   }
+  self.expire_clients(now)
+  self.promote_clients(now)
   if self.clients.length() >= self.config.max_exchanges {
     return Err(Capacity("client exchanges are full"))
   }
@@ -306,6 +313,7 @@ pub fn Endpoint::request(
     created_at: now,
     last_sent_at: now,
     deadline: now + self.config.response_timeout_ms,
+    transmit_deadline: now + self.config.exchange_lifetime_ms,
     next_retry: None,
     interval,
     retransmissions: 0,

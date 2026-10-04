@@ -106,6 +106,8 @@ pub fn Endpoint::receive_response(
     Err(error) => return Err(error)
     Ok(value) => value
   }
+  self.expire_clients(now)
+  self.promote_clients(now)
   self.reply_receipts = self.reply_receipts.filter(fn(receipt) {
     receipt.expires_at > now
   })

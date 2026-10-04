@@ -78,6 +78,15 @@ pub fn Allocator::remaining_capacity(self : Allocator) -> Int {
 }
 
 ///|
+pub fn Allocator::next_expiry(self : Allocator) -> Int64? {
+  let mut expiry : Int64? = None
+  for lease in self.leases {
+    expiry = earlier(expiry, lease.expires_at)
+  }
+  expiry
+}
+
+///|
 pub fn Allocator::reserve(
   self : Allocator,
   peer : String,
