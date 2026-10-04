@@ -75,4 +75,4 @@ Published 0.1.1 registry installation verified
 - 不支持 DTLS/OSCORE/Observe/Blockwise/代理/多播/TCP；Native 默认计时受系统回拨影响。没有发布性能或完整协议认证结论。
 - 完整飞书后半部仍未读取；本人须在赛事群确认当期通知、身份资料与报名操作。无法保证不存在未公开同类项目或保证赛事通过。
 
-复现源码全量检查：`python scripts/validate.py --interop`；发布包消费检查：`python scripts/verify_release.py --version 0.1.1`。来源与许可证见 THIRD_PARTY.md，后续维护见 MAINTENANCE.md；最终申报本人根据 APPLICATION_FACTS.md 五项提纲撰写。
+复现源码全量检查：`python scripts/validate.py --interop`；发布包消费检查：`python scripts/verify_release.py --version 0.1.1`。来源与许可证见 THIRD_PARTY.md，后续维护见 MAINTENANCE.md；最终申报请本人参考 PROJECT_APPLICATION.md 五部分草稿修改定稿。

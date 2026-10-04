@@ -150,4 +150,4 @@ python -m venv .venv
 
 `python scripts/count_lines.py --json` 分别统计实现、测试、示例、文档及其他语言。实现排除空行、注释、生成接口、构建输出、依赖及第三方代码，每行只计一次。CI 检查有效实现超过 4000 行；行数不等于复杂度或协议完整性。
 
-实际开发历史、Actions、[CHANGELOG.md](CHANGELOG.md) 与 [VALIDATION.md](docs/VALIDATION.md) 保留验证证据。[公开查重与规则记录](docs/RULES_AND_DUPLICATION.md) 说明检索范围及限制，[维护计划](docs/MAINTENANCE.md) 说明功能边界。申报材料请由参赛者依据 [事实与提纲](docs/APPLICATION_FACTS.md) 本人完成。
+实际开发历史、Actions、[CHANGELOG.md](CHANGELOG.md) 与 [VALIDATION.md](docs/VALIDATION.md) 保留验证证据。[公开查重与规则记录](docs/RULES_AND_DUPLICATION.md) 说明检索范围及限制，[维护计划](docs/MAINTENANCE.md) 说明功能边界。申报材料请由参赛者参考 [项目申报书草稿](docs/PROJECT_APPLICATION.md) 本人修改定稿。
