@@ -5,7 +5,7 @@
 MoonBit 原生单播 CoAP 协议库。提供可复用的报文编解码、客户端与服务端交换状态机、资源路由、条件请求、响应缓存和资源发现。核心逻辑由 MoonBit 实现，Native UDP 使用官方公开 socket API。
 
 - 仓库：[sujy123456/MoonCoAP](https://github.com/sujy123456/MoonCoAP)。
-- 包名：`sujy123456/mooncoap`，版本 `0.1.0`；注册表发布与安装验证结果见 [VALIDATION.md](docs/VALIDATION.md)。
+- 包名：[`sujy123456/mooncoap`](https://mooncakes.io/docs/sujy123456/mooncoap)，版本 `0.1.1`；注册表发布与安装验证结果见 [VALIDATION.md](docs/VALIDATION.md)。
 - 依据：[RFC7252](https://www.rfc-editor.org/rfc/rfc7252)、[RFC6690](https://www.rfc-editor.org/rfc/rfc6690)。实现有明确边界的单播子集，不宣称完整协议认证。
 - Apache-2.0 许可证，来源与依赖见 [THIRD_PARTY.md](docs/THIRD_PARTY.md)。
 
@@ -38,10 +38,10 @@ MoonBit 原生单播 CoAP 协议库。提供可复用的报文编解码、客户
 
 开发版本：`moonc v0.10.14+7d59c7ec9`、`moon 0.1.20260920`。CI 固定该编译器版本。模块默认目标为 Native；纯核心也可显式选择 JS。Native UDP 依赖公开 `moonbitlang/async@0.22.4`，核心包只导入 MoonBit Core。实测平台结果见 [VALIDATION.md](docs/VALIDATION.md)。
 
-发布成功后，在新项目执行：
+在新项目执行：
 
 ```sh
-moon add sujy123456/mooncoap@0.1.0
+moon add sujy123456/mooncoap@0.1.1
 ```
 
 核心 `moon.pkg`：
@@ -141,6 +141,8 @@ python -m venv .venv
 ```
 
 支持 `--moon /path/to/moon` 指定工具链。Windows Native 使用 MSVC/Windows SDK；Linux CI 使用 C 编译器。互通测试占用 UDP 56830/56831，只启动和终止自己的测试子进程。
+
+验证已发布包：`python scripts/verify_release.py --version 0.1.1`。脚本新建消费项目，通过注册表安装，构建 JS/Native 并运行基础与 UDP 示例；不使用本地路径替代依赖。
 
 测试覆盖非法和随机报文、选项边界、MID/Token/peer 匹配、重传、超时、队列、重复执行、条件更新、发现、缓存和真实 UDP。aiocoap 双向互通脚本是外部验证工具，Python 不实现本库核心。
 
