@@ -84,6 +84,7 @@ pub struct Endpoint {
   mut last_now : Int64
   mut next_id : Int
   mut clients : Array[ClientExchange]
+  mut reply_receipts : Array[ReplyReceipt]
   mut outbox : Array[Action]
 }
 
@@ -93,7 +94,15 @@ pub fn Endpoint::new(config : Config) -> Result[Endpoint, Failure] {
     Err(error) => return Err(error)
     Ok(value) => value
   }
-  Ok({ config, allocator, last_now: 0L, next_id: 1, clients: [], outbox: [], })
+  Ok({
+    config,
+    allocator,
+    last_now: 0L,
+    next_id: 1,
+    clients: [],
+    reply_receipts: [],
+    outbox: [],
+  })
 }
 
 ///|
