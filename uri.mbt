@@ -149,6 +149,10 @@ pub fn CoapUri::parse(
     if !host.contains(":") || host.contains("%") {
       return Err(Invalid("invalid or scoped IPv6 literal"))
     }
+    host = match canonical_ipv6(host) {
+      Err(e) => return Err(e)
+      Ok(v) => v
+    }
     let suffix = authority[closing + 1:].to_owned()
     if !suffix.is_empty() {
       if !suffix.has_prefix(":") {
