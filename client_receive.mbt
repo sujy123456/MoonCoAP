@@ -98,7 +98,8 @@ pub fn Endpoint::receive_response(
     Err(error) => return Err(error)
     Ok(_) => ()
   }
-  match self.ensure_actions(self.config.max_exchanges + 3) {
+  match
+    self.ensure_actions(self.config.max_exchanges + self.config.max_dedup + 4) {
     Err(error) => return Err(error)
     Ok(_) => ()
   }

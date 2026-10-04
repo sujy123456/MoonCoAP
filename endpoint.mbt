@@ -87,6 +87,7 @@ pub struct Endpoint {
   mut next_id : Int
   mut clients : Array[ClientExchange]
   mut reply_receipts : Array[ReplyReceipt]
+  mut servers : Array[ServerExchange]
   mut outbox : Array[Action]
 }
 
@@ -103,6 +104,7 @@ pub fn Endpoint::new(config : Config) -> Result[Endpoint, Failure] {
     next_id: 1,
     clients: [],
     reply_receipts: [],
+    servers: [],
     outbox: [],
   })
 }
@@ -157,9 +159,20 @@ pub fn Endpoint::queued_count(self : Endpoint) -> Int {
 
 ///|
 pub fn Endpoint::active_for_peer(self : Endpoint, peer : String) -> Int {
-  self.clients
-  .filter(fn(exchange) { exchange.peer == peer && exchange.phase == Sending })
-  .length()
+  let clients = self.clients
+    .filter(fn(exchange) { exchange.peer == peer && exchange.phase == Sending })
+    .length()
+  let mut servers = 0
+  for exchange in self.servers {
+    match exchange.transmission {
+      Some(response) =>
+        if exchange.incoming.peer == peer && response.phase == Sending {
+          servers = servers + 1
+        }
+      None => ()
+    }
+  }
+  clients + servers
 }
 
 ///|
@@ -168,6 +181,11 @@ pub fn Endpoint::active_peers(self : Endpoint) -> Array[String] {
   for exchange in self.clients {
     if !result.contains(exchange.peer) {
       result.push(exchange.peer)
+    }
+  }
+  for exchange in self.servers {
+    if !result.contains(exchange.incoming.peer) {
+      result.push(exchange.incoming.peer)
     }
   }
   result
@@ -225,19 +243,84 @@ fn Endpoint::start_client(
 
 ///|
 fn Endpoint::promote_clients(self : Endpoint, now : Int64) -> Unit {
-  for exchange in self.clients {
-    if exchange.phase == Queued &&
-      self.active_for_peer(exchange.peer) < self.config.nstart {
-      match self.start_client(exchange, now) {
-        Ok(_) => ()
-        Err(error) => {
-          exchange.phase = Finished
-          self.outbox.push(Failed(exchange.id, error))
+  for _round = 0
+      _round < self.config.max_exchanges + self.config.max_dedup
+      _round = _round + 1 {
+    let mut client_index : Int? = None
+    let mut server_index : Int? = None
+    let mut smallest_id = 2147483647
+    for index = 0; index < self.clients.length(); index = index + 1 {
+      let exchange = self.clients[index]
+      if exchange.phase == Queued &&
+        exchange.id < smallest_id &&
+        self.active_for_peer(exchange.peer) < self.config.nstart {
+        smallest_id = exchange.id
+        client_index = Some(index)
+        server_index = None
+      }
+    }
+    for index = 0; index < self.servers.length(); index = index + 1 {
+      let exchange = self.servers[index]
+      match exchange.transmission {
+        Some(response) =>
+          if response.phase == Queued &&
+            exchange.incoming.id < smallest_id &&
+            self.active_for_peer(exchange.incoming.peer) < self.config.nstart {
+            smallest_id = exchange.incoming.id
+            server_index = Some(index)
+            client_index = None
+          }
+        None => ()
+      }
+    }
+    match (client_index, server_index) {
+      (Some(index), _) => {
+        let exchange = self.clients[index]
+        match self.start_client(exchange, now) {
+          Ok(_) => ()
+          Err(error) => {
+            exchange.phase = Finished
+            self.outbox.push(Failed(exchange.id, error))
+          }
         }
       }
+      (_, Some(index)) => {
+        let exchange = self.servers[index]
+        match self.start_server_response(exchange, now) {
+          Ok(_) => ()
+          Err(error) => {
+            match exchange.transmission {
+              Some(response) => response.phase = Finished
+              None => ()
+            }
+            self.outbox.push(Failed(exchange.incoming.id, error))
+          }
+        }
+      }
+      _ => break
     }
   }
   self.clients = self.clients.filter(fn(exchange) { exchange.phase != Finished })
+}
+
+///|
+fn Endpoint::expire_server_records(self : Endpoint, now : Int64) -> Unit {
+  for exchange in self.servers {
+    if !exchange.answered && exchange.expires_at <= now {
+      exchange.answered = true
+      self.outbox.push(Failed(exchange.incoming.id, TimedOut))
+    }
+  }
+  self.servers = self.servers.filter(fn(exchange) {
+    if exchange.expires_at > now {
+      true
+    } else {
+      match exchange.transmission {
+        Some(response) => response.phase != Finished
+        None => false
+      }
+    }
+  })
 }
 
 ///|
@@ -256,11 +339,13 @@ pub fn Endpoint::request(
     Err(error) => return Err(error)
     Ok(_) => ()
   }
-  match self.ensure_actions(self.config.max_exchanges + 1) {
+  match
+    self.ensure_actions(self.config.max_exchanges + self.config.max_dedup + 4) {
     Err(error) => return Err(error)
     Ok(_) => ()
   }
   self.expire_clients(now)
+  self.expire_server_records(now)
   self.promote_clients(now)
   if self.clients.length() >= self.config.max_exchanges {
     return Err(Capacity("client exchanges are full"))
@@ -339,7 +424,8 @@ pub fn Endpoint::cancel(
     Err(error) => return Err(error)
     Ok(_) => ()
   }
-  match self.ensure_actions(self.config.max_exchanges + 1) {
+  match
+    self.ensure_actions(self.config.max_exchanges + self.config.max_dedup + 4) {
     Err(error) => return Err(error)
     Ok(_) => ()
   }

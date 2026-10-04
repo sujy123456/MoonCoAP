@@ -26,7 +26,10 @@ pub fn Endpoint::poll(self : Endpoint, now : Int64) -> Result[Unit, Failure] {
     Err(error) => return Err(error)
     Ok(_) => ()
   }
-  match self.ensure_actions(self.config.max_exchanges * 2 + 1) {
+  match
+    self.ensure_actions(
+      self.config.max_exchanges * 2 + self.config.max_dedup + 4,
+    ) {
     Err(error) => return Err(error)
     Ok(_) => ()
   }
@@ -58,6 +61,8 @@ pub fn Endpoint::poll(self : Endpoint, now : Int64) -> Result[Unit, Failure] {
   self.reply_receipts = self.reply_receipts.filter(fn(receipt) {
     receipt.expires_at > now
   })
+  self.poll_server_responses(now)
+  self.expire_server_records(now)
   self.promote_clients(now)
   Ok(())
 }
@@ -77,6 +82,22 @@ pub fn Endpoint::next_deadline(self : Endpoint) -> Int64? {
   }
   for receipt in self.reply_receipts {
     result = earlier(result, receipt.expires_at)
+  }
+  for exchange in self.servers {
+    if exchange.expires_at > self.last_now {
+      result = earlier(result, exchange.expires_at)
+    }
+    match exchange.transmission {
+      Some(response) =>
+        if response.phase != Finished {
+          result = earlier(result, response.deadline)
+          match response.next_retry {
+            Some(time) => result = earlier(result, time)
+            None => ()
+          }
+        }
+      None => ()
+    }
   }
   result
 }
