@@ -1,0 +1,10 @@
+supported_targets = "native"
+
+import {
+  "sujy123456/mooncoap" @coap,
+  "sujy123456/mooncoap/udp",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/async",
+}
+
+pkgtype(kind: "executable")
