@@ -10,7 +10,7 @@ license = "Apache-2.0"
 
 keywords = [ "coap", "rfc7252", "network", "protocol", "iot" ]
 
-preferred_target = "js"
+preferred_target = "native"
 
 description = "Bounded, deterministic unicast CoAP protocol core for MoonBit"
 

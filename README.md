@@ -36,7 +36,7 @@ MoonBit 原生单播 CoAP 协议库。提供可复用的报文编解码、客户
 
 ## 工具链与安装
 
-开发版本：`moonc v0.10.14+7d59c7ec9`、`moon 0.1.20260920`。CI 固定该编译器版本。Native UDP 依赖公开 `moonbitlang/async@0.22.4`，核心包只导入 MoonBit Core。实测平台结果见 [VALIDATION.md](docs/VALIDATION.md)。
+开发版本：`moonc v0.10.14+7d59c7ec9`、`moon 0.1.20260920`。CI 固定该编译器版本。模块默认目标为 Native；纯核心也可显式选择 JS。Native UDP 依赖公开 `moonbitlang/async@0.22.4`，核心包只导入 MoonBit Core。实测平台结果见 [VALIDATION.md](docs/VALIDATION.md)。
 
 发布成功后，在新项目执行：
 

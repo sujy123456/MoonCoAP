@@ -1,0 +1,49 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "sujy123456/mooncoap/udp"
+
+import {
+  "moonbitlang/core/debug",
+  "sujy123456/mooncoap",
+}
+
+// Values
+pub fn network_config(@mooncoap.Config) -> @mooncoap.Config
+
+// Errors
+pub suberror ProtocolError {
+  ProtocolError(@mooncoap.Failure)
+} derive(@debug.Debug)
+pub fn ProtocolError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct UdpEndpoint {
+  // private fields
+}
+pub async fn UdpEndpoint::acknowledge(Self, Int) -> Unit
+pub fn UdpEndpoint::address(Self) -> String
+pub async fn UdpEndpoint::bind(String, @mooncoap.Config) -> Self
+pub async fn UdpEndpoint::cancel(Self, Int) -> Unit
+pub fn UdpEndpoint::close(Self) -> Unit
+pub fn UdpEndpoint::drain(Self) -> Array[UdpEvent]
+pub async fn UdpEndpoint::exchange(Self, String, @mooncoap.Request, Int) -> @mooncoap.Message
+pub async fn UdpEndpoint::flush(Self) -> Unit
+pub fn UdpEndpoint::next_deadline(Self) -> Int64?
+pub fn UdpEndpoint::now(Self) -> Int64
+pub fn UdpEndpoint::outstanding(Self) -> Int
+pub async fn UdpEndpoint::request(Self, String, @mooncoap.Request) -> Int
+pub async fn UdpEndpoint::respond(Self, Int, @mooncoap.Response) -> Unit
+pub fn UdpEndpoint::server_state(Self) -> Array[@mooncoap.ServerView]
+pub fn UdpEndpoint::state(Self) -> Array[@mooncoap.ExchangeView]
+pub async fn UdpEndpoint::step(Self, Int) -> Array[UdpEvent]
+
+pub(all) enum UdpEvent {
+  Delivered(@mooncoap.Action)
+  Discarded(String, @mooncoap.Failure)
+} derive(Eq, @debug.Debug)
+pub fn UdpEvent::equal(Self, Self) -> Bool
+pub fn UdpEvent::not_equal(Self, Self) -> Bool
+pub fn UdpEvent::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits
