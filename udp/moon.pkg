@@ -1,0 +1,9 @@
+supported_targets = "native"
+
+import {
+  "sujy123456/mooncoap" @coap,
+  "moonbitlang/async",
+  "moonbitlang/async/socket",
+  "moonbitlang/core/random",
+  "moonbitlang/core/debug",
+}
