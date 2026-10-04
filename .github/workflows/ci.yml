@@ -1,0 +1,19 @@
+name: checks
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MoonBit
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+      - name: Add tools to PATH
+        run: echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - run: moon version --all
+      - run: moon fmt --check
+      - run: moon check --target js --deny-warn
+      - run: moon test --target js --deny-warn
+      - run: moon build --target js --deny-warn
+      - run: moon check --target native --deny-warn
+      - run: moon test --target native --deny-warn
+      - run: moon build --target native --deny-warn

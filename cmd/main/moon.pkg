@@ -1,0 +1,5 @@
+// import {
+//   "localdev/mooncoap" @lib,
+// }
+
+pkgtype(kind: "executable")

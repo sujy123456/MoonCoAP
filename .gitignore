@@ -1,0 +1,7 @@
+/_build/
+/.mooncakes/
+/.repos/
+/.DS_Store
+/test-results/
+/dist/
+__pycache__/
